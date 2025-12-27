@@ -1,0 +1,22 @@
+server:
+  # 서버 활성화 플래그
+  enabled: true
+  # 서버 리스닝 포트
+  port: 8080
+  # TLS 인증서 파일 경로
+  tlsCertPath: cert/rootweb.crt
+  tlsKeyPath: cert/rootweb.key
+
+db:
+  # DB 파일 경로
+  dbPath: db/data.db
+
+log:
+  # 최대 로그 파일 사이즈 (단위:MB)
+  maxSize: 10
+  # 최대 로그 파일 백업 개수
+  maxBackups: 30
+  # 백업 로그 파일 최대 유지 기간 (단위:일)
+  maxAge: 90
+  # 로그 파일 백업 시 압축 여부
+  compress: false

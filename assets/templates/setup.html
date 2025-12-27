@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RootWeb | 초기 설정</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="setup-card">
+        <div class="logo">RootWeb</div>
+        <div class="title">관리자 계정 생성</div>
+        <div class="subtitle">최초 관리자 계정 생성 및 OTP를 등록합니다.</div>
+
+        <form action="/setup" method="POST">
+            <input type="hidden" name="secret" value="{{.Secret}}">
+            
+            <div class="input-group">
+                <label>아이디</label>
+                <input type="text" name="username" placeholder="admin" required autofocus>
+            </div>
+
+            <div class="input-group">
+                <label>비밀번호</label>
+                <input type="password" id="password" name="password" placeholder="비밀번호 설정" required>
+                <div id="password-strength" class="password-strength">
+                    <div class="strength-bars">
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                        <div class="strength-bar"></div>
+                    </div>
+                    <span class="strength-text"></span>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>비밀번호 확인</label>
+                <input type="password" id="password_confirm" placeholder="비밀번호 다시 입력" required>
+                <div id="password-match-error" class="error-message" style="display: none;">
+                    비밀번호가 일치하지 않습니다.
+                </div>
+            </div>
+
+            <div class="otp-container">
+                <div class="qr-frame">
+                    <img src="data:image/png;base64,{{.QRBase64}}" width="160" height="160" alt="OTP QR">
+                </div>
+                <div class="input-group" style="margin-bottom:0;">
+                    <label style="margin-bottom: 12px;">Google Authenticator 코드 입력</label>
+                    <input type="text" name="otp_token" class="otp-input" placeholder="000000" maxlength="6" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-primary">계정 생성 및 로그인</button>
+        </form>
+    </div>
+
+    <script src="/static/js/setup.js"></script>
+</body>
+</html>

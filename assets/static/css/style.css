@@ -1,0 +1,203 @@
+:root {
+    --primary: #8ab4f8;       /* Google Blue */
+    --primary-hover: #aecbfa;
+    --bg-dark: #202124;       /* Google Dark Gray */
+    --surface: #292a2d;      /* Card Surface */
+    --input-bg: #303134;
+    --text-main: #e8eaed;
+    --text-muted: #9aa0a6;
+    --border: #3c4043;
+
+    /* Password Strength Colors */
+    --strength-weak: #ea4335;   /* Red */
+    --strength-medium: #fbbc05; /* Yellow */
+    --strength-strong: #34a853; /* Green */
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    font-family: 'Google Sans', 'Inter', -apple-system, sans-serif;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh; /* Changed from 100-vh for valid CSS */
+}
+
+/* 카드 컨테이너 */
+.setup-card {
+    background: var(--surface);
+    width: 100%;
+    max-width: 448px;
+    padding: 48px 40px;
+    border-radius: 24px;
+    border: 1px solid var(--border);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.3);
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: 800;
+    margin-bottom: 8px;
+    text-align: center;
+    background: linear-gradient(45deg, #4285F4, #34A853, #FBBC05, #EA4335);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: 500;
+    text-align: center;
+    margin-bottom: 12px;
+}
+
+.subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+/* 입력 필드 */
+.input-group {
+    margin-bottom: 24px;
+    position: relative;
+}
+
+.input-group label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    margin-left: 4px;
+}
+
+input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: white;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.2);
+}
+
+/* Error / Invalid State */
+input.error {
+    border-color: var(--strength-weak) !important; /* Red for errors */
+    box-shadow: 0 0 0 2px rgba(234, 67, 53, 0.2) !important;
+}
+
+.error-message {
+    color: var(--strength-weak);
+    font-size: 12px;
+    margin-top: 8px;
+    margin-left: 4px;
+}
+
+/* Password Strength Indicator */
+.password-strength {
+    display: none; /* JS에서 제어 */
+    flex-wrap: wrap; /* 글자가 길어질 경우 줄바꿈 허용 */
+    gap: 8px;
+    margin-top: 12px;
+    align-items: center;
+}
+
+.strength-bars {
+    display: flex;
+    gap: 4px;
+    width: 100px; /* 바 영역 너비 고정 */
+}
+
+.password-strength .strength-bar {
+    height: 4px; /* 바 두께 */
+    flex: 1;
+    background-color: var(--input-bg);
+    border-radius: 2px;
+    transition: background-color 0.3s;
+}
+
+/* 텍스트 스타일: 짤림 방지 및 가독성 */
+.password-strength .strength-text {
+    font-size: 13px;
+    line-height: 1.4;
+    color: var(--text-muted);
+    flex: 1; /* 남은 공간 차지 */
+    min-width: 150px;
+}
+
+/* 색상 로직 */
+.password-strength.weak .strength-bar:nth-child(1) { background-color: var(--strength-weak); }
+.password-strength.weak .strength-text { color: var(--strength-weak); }
+
+.password-strength.medium .strength-bar:nth-child(1),
+.password-strength.medium .strength-bar:nth-child(2) { background-color: var(--strength-medium); }
+.password-strength.medium .strength-text { color: var(--strength-medium); }
+
+.password-strength.strong .strength-bar:nth-child(1),
+.password-strength.strong .strength-bar:nth-child(2),
+.password-strength.strong .strength-bar:nth-child(3) { background-color: var(--strength-strong); }
+.password-strength.strong .strength-text { color: var(--strength-strong); }
+
+/* OTP 섹션 */
+.otp-container {
+    background: #171717;
+    border-radius: 20px;
+    padding: 24px;
+    text-align: center;
+    margin-bottom: 32px;
+    border: 1px dashed var(--border);
+}
+
+.qr-frame {
+    background: white;
+    padding: 12px;
+    border-radius: 16px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.otp-input {
+    letter-spacing: 0.5em;
+    font-size: 24px;
+    font-weight: 700;
+    text-align: center;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid var(--border);
+    border-radius: 0;
+}
+
+/* 버튼 */
+.btn-primary {
+    width: 100%;
+    background-color: var(--primary);
+    color: #202124;
+    border: none;
+    padding: 14px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+}
+.btn-primary:disabled {
+    background-color: #606060; /* Darker gray for disabled */
+    cursor: not-allowed;
+    opacity: 0.7;
+}
