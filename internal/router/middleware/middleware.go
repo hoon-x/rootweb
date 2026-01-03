@@ -19,7 +19,9 @@ package middleware
 import (
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"github.com/hoon-x/rootweb/internal/db"
 )
@@ -61,6 +63,76 @@ func EnsureAdminExists() gin.HandlerFunc {
 				c.Abort()
 				return
 			}
+		}
+		c.Next()
+	}
+}
+
+// RequireAuth 로그인 되어있는지 확인하는 미들웨어
+func RequireAuth() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idleTimeout := 30 * time.Minute
+		path := c.Request.URL.Path
+
+		// 정적 리소스는 예외
+		if strings.HasPrefix(path, "/static/") {
+			c.Next()
+			return
+		}
+
+		// 예외 경로 체크
+		switch path {
+		case "/login", "/setup", "/logout", "/favicon.ico":
+			c.Next()
+			return
+		}
+
+		// 세션 검사
+		sess := sessions.Default(c)
+		if sess.Get("user_id") == nil {
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
+
+		// last_seen 읽기
+		var lastSeenUnix int64
+		if v := sess.Get("last_seen"); v != nil {
+			switch t := v.(type) {
+			case int64:
+				lastSeenUnix = t
+			case int:
+				lastSeenUnix = int64(t)
+			case float64:
+				lastSeenUnix = int64(t)
+			}
+		}
+
+		now := time.Now()
+		lastSeen := time.Unix(lastSeenUnix, 0)
+
+		// last_seen 없으면 비정상 세션으로 보고 재로그인 유도
+		// IDLE 타임아웃 체크
+		if lastSeenUnix == 0 || now.Sub(lastSeen) > idleTimeout {
+			sess.Clear()
+			sess.Options(sessions.Options{Path: "/", MaxAge: -1})
+			_ = sess.Save()
+			c.Redirect(http.StatusFound, "/login")
+			c.Abort()
+			return
+		}
+
+		// 10분 마다 세션 유지 기간 갱신
+		if now.Sub(lastSeen) >= 10*time.Minute {
+			sess.Set("last_seen", now.Unix())
+			sess.Options(sessions.Options{
+				Path:     "/",
+				MaxAge:   int(idleTimeout.Seconds()),
+				HttpOnly: true,
+				Secure:   true,
+				SameSite: http.SameSiteLaxMode,
+			})
+			_ = sess.Save()
 		}
 		c.Next()
 	}

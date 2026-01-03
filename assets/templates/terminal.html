@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RootWeb Terminal</title>
+    <link rel="stylesheet" href="/static/css/xterm.css" />
+    <style>
+        html, body {
+            height: 100%;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+            background-color: #0d1117;
+            overflow: hidden;
+        }
+
+        /* --- 상단 상태 바 스타일 --- */
+        #status-bar {
+            height: 40px;
+            background-color: #161b22;
+            color: #c9d1d9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            box-sizing: border-box;
+            border-bottom: 1px solid #30363d;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 13px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .bar-left {
+            font-weight: 600;
+            color: #f0f6fc;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            letter-spacing: -0.02em;
+        }
+
+        .app-icon {
+            width: 12px;
+            height: 12px;
+            background-color: #388bfd;
+            border-radius: 3px;
+        }
+
+        .bar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .status-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .status-led {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: #484f58;
+        }
+        .status-led.connected { background-color: #3fb950; }
+        .status-led.disconnected { background-color: #f85149; }
+
+        .btn-logout {
+            background-color: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 3px 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            text-decoration: none;
+            transition: all 0.1s ease;
+        }
+        .btn-logout:hover {
+            background-color: #30363d;
+            border-color: #8b949e;
+            color: #fff;
+        }
+
+        /* --- 터미널 컨테이너 --- */
+        #terminal-container {
+            height: calc(100% - 40px);
+            width: 100%;
+            background-color: #0d1117;
+        }
+
+        #status-overlay {
+            display: none;
+            position: absolute;
+            top: 40px;
+            left: 0; right: 0; bottom: 0;
+            background: rgba(13, 17, 23, 0.9);
+            color: #fff;
+            justify-content: center;
+            align-items: center;
+            font-family: -apple-system, sans-serif;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <div id="status-bar">
+        <div class="bar-left">
+            <div class="app-icon"></div>
+            <span>RootWeb</span>
+        </div>
+        <div class="bar-right">
+            <div class="status-wrapper">
+                <div id="led" class="status-led"></div>
+                <span id="status-text">Connecting</span>
+            </div>
+            <a href="/" class="btn-logout">Home</a>
+        </div>
+    </div>
+
+    <div id="status-overlay">
+        <div style="text-align: center;">
+            <div style="margin-bottom: 12px; font-weight: 600;">Session Terminated</div>
+            <button onclick="location.reload()" style="background:#388bfd; border:none; color:#fff; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:12px; font-weight:600;">Reconnect</button>
+        </div>
+    </div>
+
+    <div id="terminal-container"></div>
+
+    <script src="/static/js/xterm.js"></script>
+    <script src="/static/js/xterm-addon-fit.js"></script>
+    <script src="/static/js/xterm-addon-web-links.js"></script>
+
+    <script>
+        const statusText = document.getElementById('status-text');
+        const statusLed = document.getElementById('led');
+        const overlay = document.getElementById('status-overlay');
+        let sessionInterval = null;
+        let resizeTimeout = null; // 리사이즈 디바운싱을 위한 변수
+
+        // 1. xterm.js 설정
+        const term = new Terminal({
+            cursorBlink: true,
+            fontSize: 14,
+            fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace',
+            theme: {
+                background: '#0d1117',
+                foreground: '#c9d1d9',
+                cursor: '#58a6ff'
+            }
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.loadAddon(new WebLinksAddon.WebLinksAddon());
+        term.open(document.getElementById('terminal-container'));
+        fitAddon.fit();
+
+        // 2. WebSocket 연결
+        const protocol = window.location.protocol === 'https:' ? 'wss://' : 'ws://';
+        const wsUrl = protocol + window.location.host + '/terminal/ws';
+        let socket = new WebSocket(wsUrl);
+        socket.binaryType = 'arraybuffer';
+
+        // 3. 세션 유지용 핑(HTTP GET /ping) 함수
+        function startSessionKeeper() {
+            if (sessionInterval) clearInterval(sessionInterval);
+            sessionInterval = setInterval(() => {
+                fetch('/ping')
+                    .then(response => {
+                        if (response.ok) {
+                            console.log('Session Refreshed:', new Date().toLocaleTimeString());
+                        } else {
+                            if (response.status === 401) location.reload();
+                        }
+                    })
+                    .catch(err => console.error('Session Keep-alive Error:', err));
+            }, 540000); // 9분 (백엔드 10분 체크 기준 안전선)
+        }
+
+        // 4. 이벤트 핸들러
+        term.onData(data => {
+            if (socket.readyState === WebSocket.OPEN) {
+                socket.send(new TextEncoder().encode(data));
+            }
+        });
+
+        socket.onmessage = (event) => {
+            term.write(new Uint8Array(event.data));
+        };
+
+        socket.onopen = () => {
+            updateStatus('Active', true);
+            term.focus();
+            startSessionKeeper();
+
+            setTimeout(() => {
+                fitAddon.fit();
+                socket.send(JSON.stringify({type: 'resize', cols: term.cols, rows: term.rows}));
+            }, 100);
+        };
+
+        socket.onclose = () => {
+            updateStatus('Offline', false);
+            overlay.style.display = 'flex';
+            if (sessionInterval) clearInterval(sessionInterval);
+        };
+
+        // --- 5. 리사이즈 디바운싱 적용 ---
+        window.addEventListener('resize', () => {
+            // 이전에 설정된 타이머가 있다면 취소
+            if (resizeTimeout) clearTimeout(resizeTimeout);
+
+            // 100ms 동안 추가적인 리사이즈 이벤트가 없을 때만 서버로 전송
+            resizeTimeout = setTimeout(() => {
+                fitAddon.fit();
+                if (socket.readyState === WebSocket.OPEN) {
+                    socket.send(JSON.stringify({type: 'resize', cols: term.cols, rows: term.rows}));
+                    console.log('Resize sent:', term.cols, term.rows);
+                }
+            }, 100);
+        });
+
+        function updateStatus(msg, isConnected) {
+            statusText.textContent = msg;
+            statusLed.className = 'status-led ' + (isConnected ? 'connected' : 'disconnected');
+        }
+    </script>
+</body>
+</html>

@@ -38,9 +38,25 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:     config.ModuleName,
-	Short:   "",
-	Long:    "",
+	Use:   config.ModuleName,
+	Short: "Modern Web-to-Terminal Gateway with Multi-Factor Authentication",
+	Long: `
+██████╗  ██████╗  ██████╗ ████████╗██╗    ██╗███████╗██████╗ 
+██╔══██╗██╔═══██╗██╔═══██╗╚══██╔══╝██║    ██║██╔════╝██╔══██╗
+██████╔╝██║   ██║██║   ██║   ██║   ██║ █╗ ██║█████╗  ██████╔╝
+██╔══██╗██║   ██║██║   ██║   ██║   ██║███╗██║██╔══╝  ██╔══██╗
+██║  ██║╚██████╔╝╚██████╔╝   ██║   ╚███╔███╔╝███████╗██████╔╝
+╚═╝  ╚═╝ ╚═════╝  ╚═════╝    ╚═╝    ╚══╝╚══╝ ╚══════╝╚═════╝ 
+
+RootWeb is a secure, high-performance Linux administration tool 
+that provides a seamless bridge between your web browser and 
+the native system terminal.
+
+Core Capabilities:
+  - Full-duplex Web Terminal via xterm.js & PTY
+  - Hardened Security with Argon2 & TOTP (2FA)
+  - Native Linux Daemon Management
+  - Automatic TLS Certificate Provisioning`,
 	Version: config.Version + ", Build Date: " + config.BuildDate + ", Commit: " + config.Commit,
 }
 var startCmd = &cobra.Command{
@@ -152,6 +168,7 @@ func run(cmd *cobra.Command) error {
 
 	// 모듈 초기화
 	initialize()
+	logger.LogInfo("Run %s (pid:%d)", config.ModuleName, config.RunConf.Pid)
 
 	// 등록된 모든 작업 가동
 	taskManager.RunAll()
@@ -340,6 +357,7 @@ func finalize() {
 	if err := taskManager.ShutdownAll(10 * time.Second); err != nil {
 		logger.LogWarn("All tasks have not been completed: %v", err)
 	}
+	logger.LogInfo("Shutdown %s (pid:%d)", config.ModuleName, config.RunConf.Pid)
 
 	// 로거 자원 해제
 	logger.FinalizeLogger()

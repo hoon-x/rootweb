@@ -23,6 +23,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/hoon-x/rootweb/config"
@@ -36,10 +37,17 @@ import (
 
 // Run 서버 가동
 func Run(ctx context.Context) {
-	// 서버 종료 시에는 프로세스가 종료될 수 있도록 함
-	defer ipc.SendIpcEvt(ipc.Shutdown)
-
+	var once sync.Once
 	var tlsConf tls.Config
+
+	shutdown := func() {
+		once.Do(func() {
+			ipc.SendIpcEvt(ipc.Shutdown)
+		})
+	}
+
+	// 서버 종료 시 프로세스가 종료될 수 있도록 함
+	defer shutdown()
 
 	// DB 경로 생성
 	if err := os.MkdirAll(filepath.Dir(config.Conf.DB.DBPath), 0700); err != nil {
@@ -98,7 +106,7 @@ func Run(ctx context.Context) {
 		err := server.ListenAndServeTLS("", "")
 		if err != nil && err != http.ErrServerClosed {
 			logger.LogError("Server error occurred: %v", err)
-			ipc.SendIpcEvt(ipc.Shutdown)
+			shutdown()
 		}
 	}()
 

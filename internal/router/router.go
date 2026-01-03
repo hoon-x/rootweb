@@ -17,6 +17,10 @@
 package router
 
 import (
+	"net/http"
+
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"github.com/hoon-x/rootweb/config"
 	"github.com/hoon-x/rootweb/internal/router/handler"
@@ -33,6 +37,16 @@ func NewGinRouterEngine() *gin.Engine {
 		return gin.ReleaseMode
 	}())
 
+	// 쿠키 세션 설정
+	store := cookie.NewStore([]byte("rB9xQ7KfA2mW4ZP8EJcD6VtY5SgHnU3L"))
+	store.Options(sessions.Options{
+		Path:     "/",
+		MaxAge:   1800,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	// gin 라우터 생성
 	r := gin.New()
 
@@ -40,16 +54,30 @@ func NewGinRouterEngine() *gin.Engine {
 	r.LoadHTMLGlob("assets/templates/*.html")
 	r.Static("/static", "./assets/static")
 
+	// [미들웨어 정의]
 	// TODO: 로그가 모듈 로그로 기록되도록 인터페이스 구현 필요
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())
-	// 모든 접속 시 관리자가 있는지 체크
+	// 모든 접속 시 관리자 존재 여부 확인 미들웨어 등록
 	r.Use(middleware.EnsureAdminExists())
+	// 쿠키 세션 미들웨어 등록
+	r.Use(sessions.Sessions("rootweb_sess", store))
+	// 로그인 여부 확인 미들웨어 등록
+	r.Use(middleware.RequireAuth())
 
-	// 라우트 정의
-	// 초기 설정 (관리자가 없을 때만 접근 가능)
+	// [라우트 정의]
+	// 초기 설정 핸들러 (관리자가 없을 때만 접근 가능)
 	r.GET("/setup", handler.HtmlSetup)
 	r.POST("/setup", handler.RegisterAdmin)
-
+	// 로그인 처리 핸들러
+	r.GET("/login", handler.HtmlLogin)
+	r.POST("/login", handler.Login)
+	r.GET("/logout", handler.Logout)
+	// 터미널 처리 핸들러
+	r.GET("/terminal", handler.HtmlTerminal)
+	r.GET("/terminal/ws", handler.TerminalWS)
+	r.GET("/ping", handler.Ping)
+	// 메인 페이지 핸들러
+	r.GET("/", handler.HtmlIndex)
 	return r
 }

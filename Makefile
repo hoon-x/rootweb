@@ -1,6 +1,6 @@
 PKG:=github.com/hoon-x/rootweb
 MODULE_NAME:=rootweb
-VERSION:=0.9.0
+VERSION:=1.0.0
 COMMIT:=$(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
 BUILD_DATE:=$(shell date +%Y-%m-%d' '%H:%M:%S)
 
