@@ -35,9 +35,9 @@ cd bin
 </p>
 
 ## Contents
-- [Quick Start](#quick-start) - et up and running in 3 steps
+- [Quick Start](#quick-start) - set up and running in 3 steps
 - [Features](#features) - Key capabilities
-- [Architecture](#architectrue) - Technical design
+- [Architecture](#architecture) - Technical design
 - [Configuration](#configuration) - YAML options
 - [Usage](#usage) - CLI commands
 - [Security](#security) - 2FA & TLS
